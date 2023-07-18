@@ -55,4 +55,40 @@ public abstract class Utils {
 		return e;
 	}
 	
+	public static byte[] arraycopyShortToByte(short[] shortArray, byte[] byteArray) {
+		return arraycopyShortToByte(shortArray, 0, byteArray, 0, shortArray.length << 1);
+	}
+	
+	public static byte[] arraycopyShortToByte(short[] shortArray, int shortArrayOffset, byte[] byteArray, int byteArrayOffset, int byteCount) {
+		int shortArrayLength = byteCount >> 1;
+		
+		for(int i=0; i < shortArrayLength; i++) {
+			int j = (i << 1) + byteArrayOffset;
+			
+			int shortVal = shortArray[i + shortArrayOffset] & 0xFFFF;
+			
+			byteArray[j + 0] = (byte) (shortVal >> 8);
+			byteArray[j + 1] = (byte) (shortVal >> 0);
+		}
+		return byteArray;
+	}
+	
+	public static short[] arraycopyByteToShort(byte[] byteArray, short[] shortArray) {
+		return arraycopyByteToShort(byteArray, 0, shortArray, 0, byteArray.length);
+	}
+	
+	public static short[] arraycopyByteToShort(byte[] byteArray, int byteArrayOffset, short[] shortArray, int shortArrayOffset, int byteCount) {
+		int shortArrayLength = byteCount >> 1;
+		
+		for(int i=0; i < shortArrayLength; i++) {
+			int j = (i << 1) + byteArrayOffset;
+			
+			int byte0 = byteArray[j + 0] & 0xFF;
+			int byte1 = byteArray[j + 1] & 0xFF;
+			
+			shortArray[i + shortArrayOffset] = (short) (byte0 << 8 | byte1);
+		}
+		return shortArray;
+	}
+	
 }

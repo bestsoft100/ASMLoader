@@ -58,10 +58,14 @@ public abstract class ImageUtils {
 	}
 	
 	public static void saveExternalImage(BufferedImage image, File file) {
+		saveExternalImage(image, "png", file);
+	}
+	
+	public static void saveExternalImage(BufferedImage image, String format, File file) {
 		FileUtils.createNewFile(file);
 		
 		try {
-			ImageIO.write(image, "png", file);
+			ImageIO.write(image, format, file);
 		} catch (IOException e) {
 			throw new RuntimeException("Error saving Image", e);
 		}
