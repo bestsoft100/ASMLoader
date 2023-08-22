@@ -14,6 +14,7 @@ import java.util.zip.ZipFile;
 
 import b100.asmloader.fabric.FabricIntegration;
 import b100.json.element.JsonArray;
+import b100.json.element.JsonElement;
 import b100.json.element.JsonObject;
 import b100.utils.StringReader;
 import b100.utils.StringUtils;
@@ -89,6 +90,8 @@ public class ASMLoader implements Log {
 		
 		log("Loaded "+mods.size()+" mods!");
 		
+		checkModDependencies();
+		
 		int transformerCount = classTransformers.size();
 		if(transformerCount == 0) {
 			log("No class transformers loaded!");
@@ -96,6 +99,16 @@ public class ASMLoader implements Log {
 			log("Loaded 1 class transformer!");
 		}else {
 			log("Loaded "+transformerCount+" class transformers!");	
+		}
+	}
+	
+	private void checkModDependencies() {
+		for(Mod mod : this.mods.values()) {
+			for(String dependency : mod.dependencies) {
+				if(!mods.containsKey(dependency)) {
+					throw new RuntimeException("Mod '"+mod.modid+"' requires mod '"+dependency+"', but mod '"+dependency+"' is not installed!");
+				}
+			}
 		}
 	}
 	
@@ -181,14 +194,6 @@ public class ASMLoader implements Log {
 	 * If an error happens, stop everything.
 	 */
 	private void loadModAndRegisterTransformers(File file, ClassLoader classLoader, List<Object> classTransformers) {
-		Class<?> classTransformerClass;
-		try{
-			// ClassTransformer class has to be loaded on the same class loader, or else everything will go up in flames
-			classTransformerClass = classLoader.loadClass("b100.asmloader.ClassTransformer");
-		}catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		
 		ZipFile zipFile = null;
 		JsonObject modJson;
 		
@@ -204,18 +209,41 @@ public class ASMLoader implements Log {
 			}
 		}
 		
-		String modid = modJson.getString("modid");
-		Mod mod = new Mod(modid, file);
+		Mod mod = new Mod(modJson.getString("modid"), file);
 
-		log("Loading mod '" + modid + "' from '"+file.getAbsolutePath()+"'");
+		log("Loading mod '" + mod.modid + "' from '"+file.getAbsolutePath()+"'");
 		
-		if(mods.containsKey(modid)) {
-			throw new RuntimeException("Duplicate mod id '"+modid+"' in files '"+file.getAbsolutePath()+"' and '"+mods.get(modid).file.getAbsolutePath()+"'!");
+		if(mods.containsKey(mod.modid)) {
+			throw new RuntimeException("Duplicate mod id '"+mod.modid+"' in files '"+file.getAbsolutePath()+"' and '"+mods.get(mod.modid).file.getAbsolutePath()+"'!");
 		}
 		
-		mods.put(modid, mod);
+		mods.put(mod.modid, mod);
 		
 		JsonArray transformerArray = modJson.getArray("transformers");
+		if(transformerArray != null) {
+			loadTransformers(classLoader, transformerArray, classTransformers);
+		}else {
+			log("Mod '"+mod.modid+"' has no class transformers!");
+		}
+		
+		if(modJson.has("depends") && modJson.get("depends").isArray()) {
+			loadModDependencies(mod, modJson);
+			
+			log("Mod '"+mod.modid+"' defines "+mod.dependencies.size()+" dependencies!");
+		}else {
+			log("Mod '"+mod.modid+"' defines no dependencies!");
+		}
+	}
+	
+	private void loadTransformers(ClassLoader classLoader, JsonArray transformerArray, List<Object> classTransformers) {
+		Class<?> classTransformerClass;
+		try{
+			// ClassTransformer class has to be loaded on the same class loader, or else everything will go up in flames
+			classTransformerClass = classLoader.loadClass("b100.asmloader.ClassTransformer");
+		}catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
 		for (int transformerEntryIndex = 0; transformerEntryIndex < transformerArray.length(); transformerEntryIndex++) {
 			String transformerEntry = transformerArray.get(transformerEntryIndex).getAsString().value;
 			log("Load transformer class: '"+transformerEntry+"'");
@@ -272,6 +300,28 @@ public class ASMLoader implements Log {
 			if(!isTransformerClass && !hasTransformerSubClasses) {
 				throw new RuntimeException("Invalid transformer entry '" + transformerEntry + "'! Class does not extend b100.asmloader.ClassTransformer, and does not have any subclasses that extend b100.asmloader.ClassTransformer!");
 			}
+		}
+	}
+	
+	private void loadModDependencies(Mod mod, JsonObject modJson) {
+		JsonArray dependenciesArray = modJson.getArray("depends");
+		for(int i=0; i < dependenciesArray.length(); i++) {
+			JsonElement element = dependenciesArray.get(i);
+			
+			String dependencyModid = null;
+			
+			if(element.isString()) {
+				dependencyModid = element.getAsString().value;
+			}else if(element.isObject()) {
+				dependencyModid = element.getAsObject().getString("modid");
+			}
+			
+			if(dependencyModid == null) {
+				log("Mod '"+mod.modid+"' defines invalid dependency at index "+i+". Expected string or json object, but got "+element.getClass().getName()+"!");
+				continue;
+			}
+			
+			mod.dependencies.add(dependencyModid);
 		}
 	}
 	
