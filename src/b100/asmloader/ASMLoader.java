@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-import b100.asmloader.fabric.FabricIntegration;
+import b100.asmloader.compat.BetaCraftIntegration;
+import b100.asmloader.compat.FabricIntegration;
 import b100.json.element.JsonArray;
 import b100.json.element.JsonElement;
 import b100.json.element.JsonObject;
@@ -22,8 +23,9 @@ import b100.utils.StringUtils;
 public class ASMLoader implements Log {
 	
 	private static ASMLoader instance;
-	
+
 	private static boolean enableFabricIntegration = false;
+	private static boolean enableBetaCraftIntegration = false;
 	private static boolean loadModsFolder = false;
 	private static boolean loadClasspath = false;
 	
@@ -38,6 +40,7 @@ public class ASMLoader implements Log {
 	private Map<String, Mod> mods = new HashMap<>();
 	
 	private FabricIntegration fabricIntegration;
+	private BetaCraftIntegration betacraftIntegration;
 	
 	private ASMLoader() {}
 	
@@ -49,6 +52,7 @@ public class ASMLoader implements Log {
 		loadSystemProperties();
 
 		log("Enable Fabric Integration: " + enableFabricIntegration);
+		log("Enable BetaCraft Integration: " + enableBetaCraftIntegration);
 		log("Load Mods on classpath: " + loadClasspath);
 		log("Load Mods in mods folder: " + loadModsFolder);
 		
@@ -64,17 +68,25 @@ public class ASMLoader implements Log {
 			fabricIntegration = new FabricIntegration(this, instrumentation);
 			return;
 		}
+		
+		if(enableBetaCraftIntegration) {
+			betacraftIntegration = new BetaCraftIntegration(this, instrumentation);
+			return;
+		}
 
 		loadMods(ClassLoader.getSystemClassLoader());
 	}
 	
 	private void loadSystemProperties() {
 		enableFabricIntegration = "true".equalsIgnoreCase(System.getProperty("asmloader.fabric"));
+		enableBetaCraftIntegration = "true".equalsIgnoreCase(System.getProperty("asmloader.betacraft"));
 		loadModsFolder = System.getProperty("asmloader.loadModsFolder") == null || System.getProperty("asmloader.loadModsFolder").equalsIgnoreCase("true");
 		loadClasspath = System.getProperty("asmloader.loadClasspath") == null || System.getProperty("asmloader.loadClasspath").equalsIgnoreCase("true");
 	}
 	
 	public void loadMods(ClassLoader classLoader) {
+		log("Loading mods with classLoader: '" + classLoader + "'");
+		
 		List<Object> classTransformers = new ArrayList<>();
 		
 		addModFilesToClassPath(instrumentation);
@@ -161,7 +173,7 @@ public class ASMLoader implements Log {
 			try {
 				if(fabricIntegration != null) {
 					fabricIntegration.addFileToClassLoader(modFile);
-				}else {
+				}else{
 					try {
 						jarFile = new JarFile(modFile);
 					}catch (Exception e) {
@@ -364,7 +376,7 @@ public class ASMLoader implements Log {
 	
 	@Override
 	public void print(String string) {
-		System.out.print("[ASMLoader] " + string + "\n");
+		System.out.println("[ASMLoader] " + string);
 	}
 	
 	public static void log(String string) {

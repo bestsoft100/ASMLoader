@@ -1,4 +1,4 @@
-package b100.asmloader.fabric;
+package b100.asmloader.compat;
 
 import static b100.asmloader.ASMHelper.*;
 import static b100.asmloader.ASMLoader.*;
@@ -135,7 +135,7 @@ public class FabricIntegration {
 			
 			InsnList insert = new InsnList();
 			insert.add(new VarInsnNode(Opcodes.ALOAD, 0));
-			insert.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "b100/asmloader/fabric/FabricIntegration", "onFabricClassLoaderCreated", "(Ljava/lang/Object;)V"));
+			insert.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "b100/asmloader/compat/FabricIntegration", "onFabricClassLoaderCreated", "(Ljava/lang/Object;)V"));
 			
 			InsnList instructions = methodInit.instructions;
 			for(int i = instructions.size() - 1; i >= 0; i--) {
@@ -166,7 +166,7 @@ public class FabricIntegration {
 			}
 			
 			InsnList insert = new InsnList();
-			insert.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "b100/asmloader/fabric/FabricIntegration", "preLaunch", "()V"));
+			insert.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "b100/asmloader/compat/FabricIntegration", "preLaunch", "()V"));
 
 			InsnList instructions = methodInit.instructions;
 			for(int i = instructions.size() - 1; i >= 0; i--) {
