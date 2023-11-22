@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -39,6 +41,8 @@ public class ASMModExporter {
 	private Map<String, ClassNode> allClasses = new HashMap<>();
 	private Set<String> modifiedClasses = new HashSet<>();
 	
+	private ClassLoader classLoader;
+	
 	public boolean run() {
 		if(minecraftJar == null) {
 			log("No minecraft jar provided, cannot continue!");
@@ -63,6 +67,8 @@ public class ASMModExporter {
 			return false;
 		}
 		log("Loaded "+mods.size()+" mods!");
+		
+		createClassLoader();
 		
 		loadClassTransformers();
 		
@@ -127,10 +133,35 @@ public class ASMModExporter {
 		mods.add(mod);
 	}
 	
+	private void createClassLoader() {
+		try {
+			List<URL> urlList = new ArrayList<>();
+			
+			for(Mod mod : mods) {
+				URL url;
+				
+				if(mod.file.isFile()) {
+					url = new URL("jar:file:" + mod.file.getAbsolutePath() + "!/");
+				}else {
+					url = mod.file.toURI().toURL();
+				}
+				
+				urlList.add(url);
+			}
+			
+			URL[] urlArray = new URL[urlList.size()];
+			for(int i=0; i < urlArray.length; i++) {
+				urlArray[i] = urlList.get(i);
+			}
+			
+			this.classLoader = new URLClassLoader(urlArray);
+		}catch (Exception e) {
+			throw new RuntimeException("Could not create class loader", e);
+		}
+	}
+	
 	private void loadClassTransformers() {
 		for(Mod mod : mods) {
-			ClassLoader classLoader = mod.classLoader;
-			
 			for(String transformerEntry : mod.transformerEntries) {
 				Class<?> transformerEntryClass;
 				Object classTransformerEntryInstance = null;

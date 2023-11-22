@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -22,7 +20,6 @@ class Mod {
 	
 	public File file;
 	public List<String> transformerEntries = new ArrayList<>();
-	public ClassLoader classLoader;
 	
 	public ZipFile zipFile;
 	
@@ -47,8 +44,10 @@ class Mod {
 		JsonObject modJson = new JsonObject(new StringReader(StringUtils.readInputString(in)));
 		JsonArray transformerArray = modJson.getArray("transformers");
 		
-		for(int i=0; i < transformerArray.length(); i++) {
-			transformerEntries.add(transformerArray.get(i).getAsString().value);
+		if(transformerArray != null) {
+			for(int i=0; i < transformerArray.length(); i++) {
+				transformerEntries.add(transformerArray.get(i).getAsString().value);
+			}	
 		}
 		
 		if(transformerEntries.size() == 0) {
@@ -58,8 +57,6 @@ class Mod {
 		}else {
 			ASMModExporter.log("Mod has "+transformerEntries.size()+" transformers!");
 		}
-		
-		createClassLoader();
 	}
 	
 	public List<String> getAllResources() {
@@ -104,21 +101,6 @@ class Mod {
 			}catch (Exception e) {
 				throw new RuntimeException("Could not load resource: '" + path + "'!");
 			}
-		}
-	}
-	
-	private void createClassLoader() {
-		try {
-			URL url;
-			if(file.isFile()) {
-				url = new URL("jar:file:" + file.getAbsolutePath() + "!/");
-			}else {
-				url = file.toURI().toURL();
-			}
-			
-			this.classLoader = new URLClassLoader(new URL[] {url});	
-		}catch (Exception e) {
-			throw new RuntimeException("Could not create class loader for file '" + file.getAbsolutePath() + "'!", e);
 		}
 	}
 	

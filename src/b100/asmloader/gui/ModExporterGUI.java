@@ -144,7 +144,6 @@ public class ModExporterGUI extends GridPanel implements FileDropListener, Actio
 				}catch (Exception ex) {
 					ex.printStackTrace();
 					success = false;
-					return;
 				}
 				
 				if(success) {
